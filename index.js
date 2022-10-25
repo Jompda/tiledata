@@ -1,48 +1,30 @@
 import options from './options.js'
 // RGBA-data: ctx.getImageData(0, 0, w, h).data
 
-// Zoom levelin laatan leveys pseudo mercator projektiolla
-// (20037508.34 - -20037508.34 ) / (2**z)
+proj4.defs("EPSG:4326", "+proj=longlat +datum=WGS84 +no_defs +type=crs")
+proj4.defs("EPSG:3857", "+proj=merc +a=6378137 +b=6378137 +lat_ts=0 +lon_0=0 +x_0=0 +y_0=0 +k=1 +units=m +nadgrids=@null +wktext +no_defs +type=crs")
 
-function pointToTileCoords(x, y, z) {
-    const size = getTileSize(z)
-    x += 20037508.34
-    //y += size //??
-    return {
-        x: Math.floor(x / size),
-        y: Math.floor(y / size),
-        z
-    }
-}
-function getTileSize(z) {
-    return (20037508.34 - -20037508.34) / (2 ** z)
-}
+console.log("latlng=>pseudo mercator", proj4("EPSG:4326", "EPSG:3857").forward([25.488281, 64.820907]))
+
 
 doStuff()
 async function doStuff() {
-    await appendImage(0, 0, 5)
-    await appendImage(0, 0, 6)
-    await appendImage(0, 0, 7)
-    await appendImage(0, 0, 8)
-    await appendImage(0, 0, 9)
-    await appendImage(0, 0, 10)
-    await appendImage(0, 0, 11)
+    for (let i = 5; i < 10; i++)
+        await appendImage(0, 0, i)
 }
 async function appendImage(xOffset = 0, yOffset = 0, zoom = 0) {
-    // TODO: selvitä miten gridin koordinaatit saa muunnettua xy-koordinaateiksi, tällä hetkelle fakissa
     const tileSize = getTileSize(zoom)
     const point = {
-        x: 2808285.721217,
-        y: 9608542.242187
+        x: 2808285,
+        y: 9608542
     }
-    point.x -= point.x % tileSize - 1
-    point.y -= point.y % tileSize - 1
-    console.log(point)
+    console.log('point', point)
 
     const tileCoords = pointToTileCoords(point.x + xOffset * tileSize, point.y + yOffset * tileSize, zoom)
     console.log(tileCoords)
 
-
+    point.x -= point.x % tileSize
+    point.y -= point.y % tileSize
     const w = 256, h = 256
     const x0 = point.x + xOffset * tileSize, y0 = point.y + yOffset * tileSize, x1 = x0 + tileSize, y1 = y0 + tileSize
 
@@ -71,15 +53,14 @@ async function appendImage(xOffset = 0, yOffset = 0, zoom = 0) {
     canvas.width = w
     canvas.height = h
     let ctx = canvas.getContext('2d')
-    ctx.drawImage(terrainRBG, 0, 0)
+    ctx.drawImage(osm, 0, 0)
     document.getElementById('r1').appendChild(canvas)
 
     canvas = document.createElement('canvas')
     canvas.width = w
     canvas.height = h
     ctx = canvas.getContext('2d')
-    ctx.drawImage(osm, 0, 0)
-
+    ctx.drawImage(terrainRBG, 0, 0)
     document.getElementById('r2').appendChild(canvas)
 
     canvas = document.createElement('canvas')
@@ -87,7 +68,6 @@ async function appendImage(xOffset = 0, yOffset = 0, zoom = 0) {
     canvas.height = h
     ctx = canvas.getContext('2d')
     ctx.drawImage(treeHeights, 0, 0)
-
     document.getElementById('r3').appendChild(canvas)
 
 
@@ -134,6 +114,18 @@ function wmsGetMap(url, {
                 img.src = blobUrl
             })
     })
+}
+
+
+function pointToTileCoords(x, y, z) {
+    return {
+        x: Math.floor((x + 20037508.34) / (2 * 20037508.34) * Math.pow(2, z)),
+        y: Math.floor((20037508.34 - y) / (2 * 20037508.34) * Math.pow(2, z)),
+        z
+    }
+}
+function getTileSize(z) {
+    return 2 * 20037508.34 / (2 ** z)
 }
 
 

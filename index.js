@@ -33,18 +33,19 @@ async function appendImage(xOffset = 0, yOffset = 0, zoom = 0) {
         layers: 'keskipituus_1519', srs: 'EPSG:3857', x0, y0, x1, y1, w, h, format: 'image/png'
     })
 
-    const terrainRBGUrl = `https://api.mapbox.com/v4/mapbox.mapbox-terrain-dem-v1/{Z}/{X}/{Y}.pngraw?access_token=${options.mapboxToken}`
-        .replace('{Z}', tileCoords.z)
-        .replace('{X}', tileCoords.x)
-        .replace('{Y}', tileCoords.y)
-    const terrainRBG = await getImage(terrainRBGUrl)
+    const terrainRBG = await getImage(
+        `https://api.mapbox.com/v4/mapbox.mapbox-terrain-dem-v1/{z}/{x}/{y}.pngraw?access_token=${options.mapboxToken}`
+            .replace('{z}', tileCoords.z)
+            .replace('{x}', tileCoords.x)
+            .replace('{y}', tileCoords.y)
+    )
 
 
     const osm = await getImage(
-        'https://tile.openstreetmap.org/{Z}/{X}/{Y}.png'
-            .replace('{Z}', tileCoords.z)
-            .replace('{X}', tileCoords.x)
-            .replace('{Y}', tileCoords.y)
+        'https://tile.openstreetmap.org/{z}/{x}/{y}.png'
+            .replace('{z}', tileCoords.z)
+            .replace('{x}', tileCoords.x)
+            .replace('{y}', tileCoords.y)
     )
 
 

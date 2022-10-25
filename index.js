@@ -4,13 +4,15 @@ import options from './options.js'
 proj4.defs("EPSG:4326", "+proj=longlat +datum=WGS84 +no_defs +type=crs")
 proj4.defs("EPSG:3857", "+proj=merc +a=6378137 +b=6378137 +lat_ts=0 +lon_0=0 +x_0=0 +y_0=0 +k=1 +units=m +nadgrids=@null +wktext +no_defs +type=crs")
 
-console.log("latlng=>pseudo mercator", proj4("EPSG:4326", "EPSG:3857").forward([25.488281, 64.820907]))
-
+//console.log("latlng=>pseudo mercator", proj4("EPSG:4326", "EPSG:3857").forward([25.488281, 64.820907]))
 
 doStuff()
 async function doStuff() {
-    for (let i = 5; i < 10; i++)
-        await appendImage(0, 0, i)
+    for (let i = 0; i < 3; i++) {
+        const z = 7 + i
+        await appendImage(0, 0, z)
+        await appendImage(1, 0, z)
+    }
 }
 async function appendImage(xOffset = 0, yOffset = 0, zoom = 0) {
     const tileSize = getTileSize(zoom)
@@ -18,20 +20,11 @@ async function appendImage(xOffset = 0, yOffset = 0, zoom = 0) {
         x: 2808285,
         y: 9608542
     }
-    console.log('point', point)
 
-    const tileCoords = pointToTileCoords(point.x + xOffset * tileSize, point.y + yOffset * tileSize, zoom)
-    console.log(tileCoords)
+    const tileCoords = pointToTileCoords({ x: point.x + xOffset * tileSize, y: point.y + yOffset * tileSize, z: zoom })
+    console.log('tileCoords', tileCoords)
 
-    point.x -= point.x % tileSize
-    point.y -= point.y % tileSize
-    const w = 256, h = 256
-    const x0 = point.x + xOffset * tileSize, y0 = point.y + yOffset * tileSize, x1 = x0 + tileSize, y1 = y0 + tileSize
-
-
-    const treeHeights = await wmsGetMap('https://kartta.luke.fi/geoserver/MVMI/ows?', {
-        layers: 'keskipituus_1519', srs: 'EPSG:3857', x0, y0, x1, y1, w, h, format: 'image/png'
-    })
+    const treeHeights = await wmsGetMapTile(tileCoords)
 
     const terrainRBG = await getImage(
         `https://api.mapbox.com/v4/mapbox.mapbox-terrain-dem-v1/{z}/{x}/{y}.pngraw?access_token=${options.mapboxToken}`
@@ -51,28 +44,57 @@ async function appendImage(xOffset = 0, yOffset = 0, zoom = 0) {
 
 
     let canvas = document.createElement('canvas')
-    canvas.width = w
-    canvas.height = h
+    canvas.width = canvas.height = 256
     let ctx = canvas.getContext('2d')
     ctx.drawImage(osm, 0, 0)
     document.getElementById('r1').appendChild(canvas)
 
     canvas = document.createElement('canvas')
-    canvas.width = w
-    canvas.height = h
+    canvas.width = canvas.height = 256
     ctx = canvas.getContext('2d')
     ctx.drawImage(terrainRBG, 0, 0)
     document.getElementById('r2').appendChild(canvas)
 
     canvas = document.createElement('canvas')
-    canvas.width = w
-    canvas.height = h
+    canvas.width = canvas.height = 256
     ctx = canvas.getContext('2d')
     ctx.drawImage(treeHeights, 0, 0)
     document.getElementById('r3').appendChild(canvas)
 
 
 }
+
+
+async function wmsGetMapTile(tileCoords, w = 256, h = 256) {
+    const p = tileCoordsToPoint(tileCoords)
+    const tileSize = getTileSize(tileCoords.z)
+
+    const x0 = p.x, y0 = p.y - tileSize, x1 = x0 + tileSize, y1 = y0 + tileSize
+
+    const treeHeights = await wmsGetMap('https://kartta.luke.fi/geoserver/MVMI/ows?', {
+        layers: 'keskipituus_1519', srs: 'EPSG:3857', x0, y0, x1, y1, w, h, format: 'image/png'
+    })
+    return treeHeights
+}
+
+
+//https://kartta.luke.fi/geoserver/MVMI/ows?service=WMS&request=GetMap&version=1.3.0&layers=keskipituus_1519&srs=EPSG:3067&bbox=308000,6666000,312096,6670096&width=256&height=256&format=image/png
+function wmsGetMap(url, {
+    version = '1.3.0', layers, srs = 'EPSG:3857', x0, y0, x1, y1, w, h, format = 'image/png'
+}, fetchOptions) {
+    const imgUrl = url + (url[url.length - 1] == '?' ? '' : '?') +
+        `service=WMS&` +
+        `request=GetMap&` +
+        `version=${version}&` +
+        `layers=${layers}&` +
+        `srs=${srs}&` +
+        `bbox=${x0},${y0},${x1},${y1}&` +
+        `width=${w}&` +
+        `height=${h}&` +
+        `format=${format}`
+    return getImage(imgUrl, fetchOptions)
+}
+
 
 function getImage(url, fetchOptions) {
     return new Promise((resolve, reject) => {
@@ -89,39 +111,19 @@ function getImage(url, fetchOptions) {
     })
 }
 
-//https://kartta.luke.fi/geoserver/MVMI/ows?service=WMS&request=GetMap&version=1.3.0&layers=keskipituus_1519&srs=EPSG:3067&bbox=308000,6666000,312096,6670096&width=256&height=256&format=image/png
-function wmsGetMap(url, {
-    version = '1.3.0', layers, srs = 'EPSG:3857', x0, y0, x1, y1, w, h, format = 'image/png'
-}, fetchOptions) {
-    return new Promise((resolve, reject) => {
-        const imgUrl = url + (url[url.length - 1] == '?' ? '' : '?') +
-            `service=WMS&` +
-            `request=GetMap&` +
-            `version=${version}&` +
-            `layers=${layers}&` +
-            `srs=${srs}&` +
-            `bbox=${x0},${y0},${x1},${y1}&` +
-            `width=${w}&` +
-            `height=${h}&` +
-            `format=${format}`
-        fetch(imgUrl, fetchOptions)
-            .then(response => response.blob())
-            .then(blob => {
-                const blobUrl = URL.createObjectURL(blob)
-                let img = new Image()
-                img.crossOrigin = '*'
-                img.onload = () => resolve(img)
-                img.onerror = reject
-                img.src = blobUrl
-            })
-    })
-}
 
-
-function pointToTileCoords(x, y, z) {
+function tileCoordsToPoint({ x, y, z }) {
+    const tileSize = getTileSize(z)
     return {
-        x: Math.floor((x + 20037508.34) / (2 * 20037508.34) * Math.pow(2, z)),
-        y: Math.floor((20037508.34 - y) / (2 * 20037508.34) * Math.pow(2, z)),
+        x: x * tileSize - 20037508.34,
+        y: 20037508.34 - y * tileSize
+    }
+}
+function pointToTileCoords({ x, y, z }) {
+    const tileSize = getTileSize(z)
+    return {
+        x: Math.floor((x + 20037508.34) / tileSize),
+        y: Math.floor((20037508.34 - y) / tileSize),
         z
     }
 }

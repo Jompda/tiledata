@@ -5,7 +5,7 @@ proj4.defs("EPSG:4326", "+proj=longlat +datum=WGS84 +no_defs +type=crs")
 proj4.defs("EPSG:3857", "+proj=merc +a=6378137 +b=6378137 +lat_ts=0 +lon_0=0 +x_0=0 +y_0=0 +k=1 +units=m +nadgrids=@null +wktext +no_defs +type=crs")
 
 
-const projectedLatLng = proj4('EPSG:3857', 'EPSG:4326').forward([2808285, 9608542])
+//const projectedLatLng = proj4('EPSG:3857', 'EPSG:4326').forward([2808285, 9608542])
 //const latlng = { lat: projectedLatLng[0], lng: projectedLatLng[1] }
 const latlng1 = { lat: 22, lng: 60 }
 const latlng2 = { lat: 30, lng: 69 }
@@ -20,9 +20,11 @@ async function doStuff() {
             lat: latlng1.lat + Math.random() * dLat,
             lng: latlng1.lng + Math.random() * dLng
         }
-        const treeHeightRGBA = await wmsLatLngTreeHeight(latlng)
-        console.log('latlng:', latlng)
-        console.log('tree height:', treeHeightRGBA, rgbToTreeHeight(treeHeightRGBA))
+        const treeHeight = await wmsLatLngTreeHeight(latlng)
+        console.table([
+            ['latlng', 'elevation', 'tree height'],
+            [(Math.round(latlng.lat * 100) / 100) + ', ' + (Math.round(latlng.lng * 100) / 100), undefined, treeHeight]
+        ])
         await appendImage(latlng, z)
     }
 }
@@ -34,7 +36,7 @@ async function appendImage(latlng, zoom = 0) {
 
     const treeHeights = await wmsGetMapTile(tileCoords)
 
-    const terrainRBG = await getImage(
+    const terrainRGB = await getImage(
         `https://api.mapbox.com/v4/mapbox.mapbox-terrain-dem-v1/{z}/{x}/{y}.pngraw?access_token=${options.mapboxToken}`
             .replace('{z}', tileCoords.z)
             .replace('{x}', tileCoords.x)
@@ -67,7 +69,7 @@ async function appendImage(latlng, zoom = 0) {
     canvas = document.createElement('canvas')
     canvas.width = canvas.height = 256
     ctx = canvas.getContext('2d')
-    ctx.drawImage(terrainRBG, 0, 0)
+    ctx.drawImage(terrainRGB, 0, 0)
     ctx.fillStyle = 'red'
     putpixel(ctx, xyOnTile.x, xyOnTile.y)
     document.getElementById('r2').appendChild(canvas)
@@ -80,6 +82,14 @@ async function appendImage(latlng, zoom = 0) {
     putpixel(ctx, xyOnTile.x, xyOnTile.y)
     document.getElementById('r3').appendChild(canvas)
 }
+
+
+/**
+ * TODO:
+ * Tee raster2dem-funktiota varten heightFunction, joka muuntaa
+ * https://kartta.luke.fi/geoserver/MVMI/ows?service=WMS&version=1.3.0&request=GetLegendGraphic&format=image/png&width=20&height=20&layer=keskipituus_1519
+ * mukaiset värit metreiksi.
+ */
 
 
 /**
@@ -105,11 +115,13 @@ function rgbToTreeHeight(rgbArray) {
         ['23,0,220', 21.9],
         ['40,31,149', 25] // Aineiston värikoodauksen mukaan 220dm - ääretön.
     ])
-    return values.get(rgbArray.slice(0, 3).join(','))
+    return values.get(rgbArray.join(','))
 }
 
 
 /**
+ * Linkkien laskentaan tilen käyttö on varmaan paljon parempi vaihtoehto,
+ * koska sen voi cachettaa ja yhellä requestilla saa monta pistettä laskettua kerralla. 
  * Hyödynnetävä aineisto:
  * © Luonnonvarakeskus, 2019, keskipituus_1519, Monilähteisen valtakunnan metsien inventoinnin (MVMI) kartta-aineisto 2017
  * haetaan osoitteesta
@@ -124,7 +136,7 @@ async function wmsLatLngTreeHeight(latlng) {
     canvas.width = canvas.height = 1
     const ctx = canvas.getContext('2d')
     ctx.drawImage(treeHeightPixel, 0, 0)
-    return ctx.getImageData(0, 0, 1, 1).data
+    return rgbToTreeHeight(ctx.getImageData(0, 0, 1, 1).data.slice(0, 3))
 }
 
 

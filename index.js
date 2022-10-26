@@ -12,10 +12,10 @@ const latlng = { lat: projectedLatLng[0], lng: projectedLatLng[1] }
 doStuff()
 async function doStuff() {
     const treeHeightRGBA = await wmsLatLngTreeHeight(latlng)
-    console.log('tree data', treeHeightRGBA)
+    console.log('tree height:', rbgToTreeHeight(treeHeightRGBA))
 
     for (let i = 0; i < 5; i++) {
-        const z = 7 + i
+        const z = 6 + i * 2
         await appendImage(latlng, z)
     }
 }
@@ -75,6 +75,29 @@ async function appendImage(latlng, zoom = 0) {
 }
 
 
+function rbgToTreeHeight(rgbArray) {
+    const values = new Map([
+        ['254,114,0', 1.3],
+        ['254,152,70', 5.7],
+        ['254,205,165', 8.5],
+        ['195,255,195', 10.7],
+        ['131,243,115', 12.5],
+        ['24,231,22', 14.3],
+        ['2,205,0', 16.1],
+        ['1,130,0', 18.4],
+        ['23,0,220', 21.9],
+        ['40,31,149', Infinity]
+    ])
+    return values.get(rgbArray.slice(0, 3).join(','))
+}
+
+
+/**
+ * Hyödynnetävä aineisto:
+ * © Luonnonvarakeskus, 2019, keskipituus_1519, Monilähteisen valtakunnan metsien inventoinnin (MVMI) kartta-aineisto 2017
+ * haetaan osoitteesta
+ * https://kartta.luke.fi/geoserver/MVMI/ows
+ */
 async function wmsLatLngTreeHeight(latlng) {
     const p = proj4('EPSG:4326', 'EPSG:3857').forward([latlng.lat, latlng.lng])
     const treeHeightPixel = await wmsGetMap('https://kartta.luke.fi/geoserver/MVMI/ows?', {
@@ -84,13 +107,16 @@ async function wmsLatLngTreeHeight(latlng) {
     canvas.width = canvas.height = 1
     const ctx = canvas.getContext('2d')
     ctx.drawImage(treeHeightPixel, 0, 0)
-    const [r, g, b, a] = ctx.getImageData(0, 0, 1, 1).data
-    return {
-        r, g, b, a
-    }
+    return ctx.getImageData(0, 0, 1, 1).data
 }
 
 
+/**
+ * Hyödynnetävä aineisto:
+ * © Luonnonvarakeskus, 2019, keskipituus_1519, Monilähteisen valtakunnan metsien inventoinnin (MVMI) kartta-aineisto 2017
+ * haetaan osoitteesta
+ * https://kartta.luke.fi/geoserver/MVMI/ows
+ */
 async function wmsGetMapTile(tileCoords, w = 256, h = 256) {
     const p = tileCoordsToPoint(tileCoords)
     const tileSize = getTileSize(tileCoords.z)

@@ -6,13 +6,13 @@ proj4.defs("EPSG:3857", "+proj=merc +a=6378137 +b=6378137 +lat_ts=0 +lon_0=0 +x_
 
 
 const projectedLatLng = proj4('EPSG:3857', 'EPSG:4326').forward([2808285, 9608542])
-const latlng = { lat: projectedLatLng[0], lng: projectedLatLng[1] }
-
+//const latlng = { lat: projectedLatLng[0], lng: projectedLatLng[1] }
+const latlng = { lat: 24.526978, lng: 64.846603 }
 
 doStuff()
 async function doStuff() {
     const treeHeightRGBA = await wmsLatLngTreeHeight(latlng)
-    console.log('tree height:', rbgToTreeHeight(treeHeightRGBA))
+    console.log('tree height:', treeHeightRGBA, rbgToTreeHeight(treeHeightRGBA))
 
     for (let i = 0; i < 5; i++) {
         const z = 6 + i * 2
@@ -75,8 +75,18 @@ async function appendImage(latlng, zoom = 0) {
 }
 
 
+/**
+ * Hyödynnetävä aineisto:
+ * © Luonnonvarakeskus, 2019, keskipituus_1519, Monilähteisen valtakunnan metsien inventoinnin (MVMI) kartta-aineisto 2017
+ * värit haettu osoitteesta:
+ * https://kartta.luke.fi/geoserver/MVMI/ows?service=WMS&version=1.3.0&request=GetLegendGraphic&format=image/png&width=20&height=20&layer=keskipituus_1519
+ * @param {*} rgbArray 
+ * @returns 
+ */
 function rbgToTreeHeight(rgbArray) {
     const values = new Map([
+        ['255,255,255', 0],
+        ['151,71,73', 0],
         ['254,114,0', 1.3],
         ['254,152,70', 5.7],
         ['254,205,165', 8.5],
@@ -86,7 +96,7 @@ function rbgToTreeHeight(rgbArray) {
         ['2,205,0', 16.1],
         ['1,130,0', 18.4],
         ['23,0,220', 21.9],
-        ['40,31,149', Infinity]
+        ['40,31,149', 25] // Aineiston värikoodauksen mukaan 220dm - ääretön.
     ])
     return values.get(rgbArray.slice(0, 3).join(','))
 }

@@ -6,22 +6,22 @@ proj4.defs("EPSG:3857", "+proj=merc +a=6378137 +b=6378137 +lat_ts=0 +lon_0=0 +x_
 
 //console.log("latlng=>pseudo mercator", proj4("EPSG:4326", "EPSG:3857").forward([25.488281, 64.820907]))
 
+const projectedLatLng = proj4('EPSG:3857', 'EPSG:4326').forward([2808285, 9608542])
+const latlng = { lat: projectedLatLng[0], lng: projectedLatLng[1] }
 doStuff()
 async function doStuff() {
-    for (let i = 0; i < 3; i++) {
+    const treeHeightRGBA = await wmsLatLngTreeHeight(latlng)
+    console.log('tree data', treeHeightRGBA)
+
+    for (let i = 0; i < 5; i++) {
         const z = 7 + i
-        await appendImage(0, 0, z)
-        await appendImage(1, 0, z)
+        await appendImage(latlng, z)
     }
 }
-async function appendImage(xOffset = 0, yOffset = 0, zoom = 0) {
-    const tileSize = getTileSize(zoom)
-    const point = {
-        x: 2808285,
-        y: 9608542
-    }
+async function appendImage(latlng, zoom = 0) {
+    const point = proj4('EPSG:4326', 'EPSG:3857').forward([latlng.lat, latlng.lng])
 
-    const tileCoords = pointToTileCoords({ x: point.x + xOffset * tileSize, y: point.y + yOffset * tileSize, z: zoom })
+    const tileCoords = pointToTileCoords({ x: point[0], y: point[1], z: zoom })
     console.log('tileCoords', tileCoords)
 
     const treeHeights = await wmsGetMapTile(tileCoords)
@@ -41,27 +41,52 @@ async function appendImage(xOffset = 0, yOffset = 0, zoom = 0) {
             .replace('{y}', tileCoords.y)
     )
 
+    const xyOnTile = xyPositionOnTile(latlng, zoom)
+    console.log('xyOnTile', xyOnTile)
 
+
+    const s = 8
+    const putpixel = (ctx, x, y) => ctx.fillRect(x - s / 2, y - s / 2, s, s)
 
     let canvas = document.createElement('canvas')
     canvas.width = canvas.height = 256
     let ctx = canvas.getContext('2d')
     ctx.drawImage(osm, 0, 0)
+    ctx.fillStyle = 'red'
+    putpixel(ctx, xyOnTile.x, xyOnTile.y)
     document.getElementById('r1').appendChild(canvas)
 
     canvas = document.createElement('canvas')
     canvas.width = canvas.height = 256
     ctx = canvas.getContext('2d')
     ctx.drawImage(terrainRBG, 0, 0)
+    ctx.fillStyle = 'red'
+    putpixel(ctx, xyOnTile.x, xyOnTile.y)
     document.getElementById('r2').appendChild(canvas)
 
     canvas = document.createElement('canvas')
     canvas.width = canvas.height = 256
     ctx = canvas.getContext('2d')
     ctx.drawImage(treeHeights, 0, 0)
+    ctx.fillStyle = 'red'
+    putpixel(ctx, xyOnTile.x, xyOnTile.y)
     document.getElementById('r3').appendChild(canvas)
+}
 
 
+async function wmsLatLngTreeHeight(latlng) {
+    const p = proj4('EPSG:4326', 'EPSG:3857').forward([latlng.lat, latlng.lng])
+    const treeHeightPixel = await wmsGetMap('https://kartta.luke.fi/geoserver/MVMI/ows?', {
+        layers: 'keskipituus_1519', srs: 'EPSG:3857', x0: p[0], y0: p[1], x1: p[0] + 1, y1: p[1] + 1, w: 1, h: 1, format: 'image/png'
+    })
+    const canvas = document.createElement('canvas')
+    canvas.width = canvas.height = 1
+    const ctx = canvas.getContext('2d')
+    ctx.drawImage(treeHeightPixel, 0, 0)
+    const [r, g, b, a] = ctx.getImageData(0, 0, 1, 1).data
+    return {
+        r, g, b, a
+    }
 }
 
 
@@ -112,6 +137,16 @@ function getImage(url, fetchOptions) {
 }
 
 
+function xyPositionOnTile(latlng, zoom) {
+    const tileSize = getTileSize(zoom)
+    const p = proj4('EPSG:4326', 'EPSG:3857').forward([latlng.lat, latlng.lng])
+    const tileXStart = p[0] - p[0] % tileSize
+    const tileYStart = p[1] - p[1] % tileSize
+    return {
+        x: Math.floor((p[0] - tileXStart) / tileSize * 256),
+        y: 256 - Math.floor((p[1] - tileYStart) / tileSize * 256)
+    }
+}
 function tileCoordsToPoint({ x, y, z }) {
     const tileSize = getTileSize(z)
     return {

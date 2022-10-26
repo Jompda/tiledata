@@ -22,7 +22,7 @@ async function doStuff() {
         }
         const treeHeightRGBA = await wmsLatLngTreeHeight(latlng)
         console.log('latlng:', latlng)
-        console.log('tree height:', treeHeightRGBA, rbgToTreeHeight(treeHeightRGBA))
+        console.log('tree height:', treeHeightRGBA, rgbToTreeHeight(treeHeightRGBA))
         await appendImage(latlng, z)
     }
 }
@@ -90,7 +90,7 @@ async function appendImage(latlng, zoom = 0) {
  * @param {*} rgbArray 
  * @returns 
  */
-function rbgToTreeHeight(rgbArray) {
+function rgbToTreeHeight(rgbArray) {
     const values = new Map([
         ['255,255,255', 0],
         ['151,71,73', 0],

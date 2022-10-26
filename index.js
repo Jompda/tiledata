@@ -1,13 +1,14 @@
 import options from './options.js'
-// RGBA-data: ctx.getImageData(0, 0, w, h).data
+
 
 proj4.defs("EPSG:4326", "+proj=longlat +datum=WGS84 +no_defs +type=crs")
 proj4.defs("EPSG:3857", "+proj=merc +a=6378137 +b=6378137 +lat_ts=0 +lon_0=0 +x_0=0 +y_0=0 +k=1 +units=m +nadgrids=@null +wktext +no_defs +type=crs")
 
-//console.log("latlng=>pseudo mercator", proj4("EPSG:4326", "EPSG:3857").forward([25.488281, 64.820907]))
 
 const projectedLatLng = proj4('EPSG:3857', 'EPSG:4326').forward([2808285, 9608542])
 const latlng = { lat: projectedLatLng[0], lng: projectedLatLng[1] }
+
+
 doStuff()
 async function doStuff() {
     const treeHeightRGBA = await wmsLatLngTreeHeight(latlng)

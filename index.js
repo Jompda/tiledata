@@ -7,15 +7,22 @@ proj4.defs("EPSG:3857", "+proj=merc +a=6378137 +b=6378137 +lat_ts=0 +lon_0=0 +x_
 
 const projectedLatLng = proj4('EPSG:3857', 'EPSG:4326').forward([2808285, 9608542])
 //const latlng = { lat: projectedLatLng[0], lng: projectedLatLng[1] }
-const latlng = { lat: 24.526978, lng: 64.846603 }
+const latlng1 = { lat: 22, lng: 60 }
+const latlng2 = { lat: 30, lng: 69 }
 
 doStuff()
 async function doStuff() {
-    const treeHeightRGBA = await wmsLatLngTreeHeight(latlng)
-    console.log('tree height:', treeHeightRGBA, rbgToTreeHeight(treeHeightRGBA))
-
+    const z = 8
+    const dLat = latlng2.lat - latlng1.lat
+    const dLng = latlng2.lng - latlng1.lng
     for (let i = 0; i < 5; i++) {
-        const z = 6 + i * 2
+        const latlng = {
+            lat: latlng1.lat + Math.random() * dLat,
+            lng: latlng1.lng + Math.random() * dLng
+        }
+        const treeHeightRGBA = await wmsLatLngTreeHeight(latlng)
+        console.log('latlng:', latlng)
+        console.log('tree height:', treeHeightRGBA, rbgToTreeHeight(treeHeightRGBA))
         await appendImage(latlng, z)
     }
 }
@@ -23,7 +30,7 @@ async function appendImage(latlng, zoom = 0) {
     const point = proj4('EPSG:4326', 'EPSG:3857').forward([latlng.lat, latlng.lng])
 
     const tileCoords = pointToTileCoords({ x: point[0], y: point[1], z: zoom })
-    console.log('tileCoords', tileCoords)
+    //console.log('tileCoords', tileCoords)
 
     const treeHeights = await wmsGetMapTile(tileCoords)
 
@@ -43,7 +50,7 @@ async function appendImage(latlng, zoom = 0) {
     )
 
     const xyOnTile = xyPositionOnTile(latlng, zoom)
-    console.log('xyOnTile', xyOnTile)
+    //console.log('xyOnTile', xyOnTile)
 
 
     const s = 8

@@ -1,7 +1,7 @@
 import options from './options.js'
 
 
-import { setConfig, getTopodataByTile, pointToTileCoords, wmsGetMapTile, getImage, xyPositionOnTile, rgbToTreeHeight } from './topodata.js'
+import { setConfig, getTopodataByTile, pointToTileCoords, wmsGetMapTile, getImage, xyPositionOnTile } from './topodata.js'
 
 
 const tileDataStorage = new Map()
@@ -31,6 +31,36 @@ setConfig({
 })
 
 
+/**
+ * Hyödynnetävä aineisto:
+ * © Luonnonvarakeskus, 2019, keskipituus_1519, Monilähteisen valtakunnan metsien inventoinnin (MVMI) kartta-aineisto 2017
+ * värit haettu osoitteesta:
+ * https://kartta.luke.fi/geoserver/MVMI/ows?service=WMS&version=1.3.0&request=GetLegendGraphic&format=image/png&width=20&height=20&layer=keskipituus_1519
+ * Luken tiedostopalvelusta saa ladattua lehtijaon mukaan laatat, joissa puiden korkeus on 16x16m sluilla desimetrin tarkkuudella.
+ * Arvoja ei olla porrastettu samoin kuin WMS-palvelimella ja aineisto tarjoaa myös korkeampia arvoja käytöön kuin 220dm.
+ * Koska arvot ovat porrastettu ja viimeinen väri kattaa 220dm - ääretön, niin käytetään sitten suomen korkeimman puun pituutta kyseisellä arvolla :D
+ * @param {*} rgbArray 
+ * @returns 
+ */
+function rgbToTreeHeight(rgbArray) {
+    const values = new Map([
+        ['255,255,255', 0],
+        ['151,71,73', 0],
+        ['254,114,0', 1.3],
+        ['254,152,70', 5.7],
+        ['254,205,165', 8.5],
+        ['195,255,195', 10.7],
+        ['131,243,115', 12.5],
+        ['24,231,22', 14.3],
+        ['2,205,0', 16.1],
+        ['1,130,0', 18.4],
+        ['23,0,220', 21.9],
+        ['40,31,149', 47]
+    ])
+    return values.get(rgbArray.join(','))
+}
+
+
 //const projectedLatLng = proj4('EPSG:3857', 'EPSG:4326').forward([2808285, 9608542])
 //const latlng = { lat: projectedLatLng[0], lng: projectedLatLng[1] }
 const latlng1 = { lat: 22, lng: 60 }
@@ -38,6 +68,17 @@ const latlng2 = { lat: 30, lng: 69 }
 
 doStuff()
 async function doStuff() {
+    await appendRandomImages()
+    /*setInterval(() => {
+        document.getElementById('r1').innerHTML = ''
+        document.getElementById('r2').innerHTML = ''
+        document.getElementById('r3').innerHTML = ''
+        appendRandomImages()
+    }, 6000)*/
+}
+
+
+async function appendRandomImages() {
     const z = 8
     const dLat = latlng2.lat - latlng1.lat
     const dLng = latlng2.lng - latlng1.lng

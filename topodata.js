@@ -1,6 +1,3 @@
-import options from './options.js'
-
-
 proj4.defs("EPSG:4326", "+proj=longlat +datum=WGS84 +no_defs +type=crs")
 proj4.defs("EPSG:3857", "+proj=merc +a=6378137 +b=6378137 +lat_ts=0 +lon_0=0 +x_0=0 +y_0=0 +k=1 +units=m +nadgrids=@null +wktext +no_defs +type=crs")
 
@@ -40,10 +37,12 @@ export function setConfig({
 
 
 export function getTopodataByTile(tileCoords, sources) {
+    if (!config.sources) throw new Error('Sources must be specified with setConfig before calling this function!')
     return new Promise((resolve, reject) => {
         const tileName = `${tileCoords.x}|${tileCoords.y}|${tileCoords.z}`
         let tileData = config.getDataByTile ? config.getDataByTile(tileName) : undefined
         if (!tileData) tileData = {}
+        console.log(tileData)
 
         const check = asyncOperation(sources.length, undefined, () => {
             if (config.saveDataByTile) config.saveDataByTile(tileName, tileData)
@@ -85,57 +84,6 @@ function getImageData(img, w, h) {
     const ctx = canvas.getContext('2d')
     ctx.drawImage(img, 0, 0)
     return ctx.getImageData(0, 0, w, h).data
-}
-
-
-/**
- * Hyödynnetävä aineisto:
- * © Luonnonvarakeskus, 2019, keskipituus_1519, Monilähteisen valtakunnan metsien inventoinnin (MVMI) kartta-aineisto 2017
- * värit haettu osoitteesta:
- * https://kartta.luke.fi/geoserver/MVMI/ows?service=WMS&version=1.3.0&request=GetLegendGraphic&format=image/png&width=20&height=20&layer=keskipituus_1519
- * Luken tiedostopalvelusta saa ladattua lehtijaon mukaan laatat, joissa puiden korkeus on 16x16m sluilla desimetrin tarkkuudella.
- * Arvoja ei olla porrastettu samoin kuin WMS-palvelimella ja aineisto tarjoaa myös korkeampia arvoja käytöön kuin 220dm.
- * Koska arvot ovat porrastettu ja viimeinen väri kattaa 220dm - ääretön, niin käytetään sitten suomen korkeimman puun pituutta kyseisellä arvolla :D
- * @param {*} rgbArray 
- * @returns 
- */
-export function rgbToTreeHeight(rgbArray) {
-    const values = new Map([
-        ['255,255,255', 0],
-        ['151,71,73', 0],
-        ['254,114,0', 1.3],
-        ['254,152,70', 5.7],
-        ['254,205,165', 8.5],
-        ['195,255,195', 10.7],
-        ['131,243,115', 12.5],
-        ['24,231,22', 14.3],
-        ['2,205,0', 16.1],
-        ['1,130,0', 18.4],
-        ['23,0,220', 21.9],
-        ['40,31,149', 47]
-    ])
-    return values.get(rgbArray.join(','))
-}
-
-
-/**
- * Linkkien laskentaan tilen käyttö on varmaan paljon parempi vaihtoehto,
- * koska sen voi cachettaa ja yhellä requestilla saa monta pistettä laskettua kerralla. 
- * Hyödynnetävä aineisto:
- * © Luonnonvarakeskus, 2019, keskipituus_1519, Monilähteisen valtakunnan metsien inventoinnin (MVMI) kartta-aineisto 2017
- * haetaan osoitteesta
- * https://kartta.luke.fi/geoserver/MVMI/ows
- */
-export async function wmsLatLngTreeHeight(latlng) {
-    const p = proj4('EPSG:4326', 'EPSG:3857').forward([latlng.lat, latlng.lng])
-    const treeHeightPixel = await wmsGetMap('https://kartta.luke.fi/geoserver/MVMI/ows?', {
-        layers: 'keskipituus_1519', srs: 'EPSG:3857', x0: p[0], y0: p[1], x1: p[0] + 1, y1: p[1] + 1, w: 1, h: 1, format: 'image/png'
-    })
-    const canvas = document.createElement('canvas')
-    canvas.width = canvas.height = 1
-    const ctx = canvas.getContext('2d')
-    ctx.drawImage(treeHeightPixel, 0, 0)
-    return rgbToTreeHeight(ctx.getImageData(0, 0, 1, 1).data.slice(0, 3))
 }
 
 
@@ -252,6 +200,7 @@ export function raster2dem(data, heightFunction) {
 
     return dem;
 }
+
 
 function asyncOperation(calls, step = () => { }, done = () => { }) {
     let called = 0

@@ -6,61 +6,75 @@ proj4.defs("EPSG:3857", "+proj=merc +a=6378137 +b=6378137 +lat_ts=0 +lon_0=0 +x_
 
 
 const config = {
-    elevationUrl: `https://api.mapbox.com/v4/mapbox.mapbox-terrain-dem-v1/{z}/{x}/{y}.pngraw?access_token=${options.mapboxToken}`,
-    elevationHeightFunction: function (R, G, B) {
-        return -10000 + (R * 256 * 256 + G * 256 + B) * 0.1;
-    },
-    treeHeightUrl: 'https://kartta.luke.fi/geoserver/MVMI/ows?',
-    treeHeightFunction: function (r, g, b) {
-        return Math.ceil(rgbToTreeHeight([r, g, b]))
-    },
+    sources: undefined,
     saveDataByTile: undefined,
-    getDataByTile: undefined,
-    timeout: 2500
+    getDataByTile: undefined
 }
+
+
+/**
+ * Source url with type wmts shall contain {x}, {y}, and {z} to be replaced with the corresponding coordinates.
+ * @param {{
+ * sources: [{
+ *   name: string,
+ *   type: 'wmts' | 'wms',
+ *   url: string,
+ *   fetchOptions: {},
+ *   valueFunction: (r: number, g: number, b: number) => number
+ * }]
+ * saveDataByTile: (name: string, data: any),
+ * getDataByTile: (name: string)
+ * }} param0 
+ * @returns 
+ */
 export function setConfig({
-    elevationUrl,
-    elevationHeightFunction,
-    treeHeightUrl,
-    treeHeightFunction,
+    sources,
     saveDataByTile,
     getDataByTile
 }) {
-    if (elevationUrl) config.elevationUrl = elevationUrl
-    if (elevationHeightFunction) config.elevationHeightFunction = elevationHeightFunction
-    if (treeHeightUrl) config.treeHeightUrl = treeHeightUrl
-    if (treeHeightFunction) config.treeHeightFunction = treeHeightFunction
+    if (!sources) return
+    config.sources = sources
     if (saveDataByTile) config.saveDataByTile = saveDataByTile
     if (getDataByTile) config.getDataByTile = getDataByTile
 }
 
 
-export async function getTopodataByTile(tileCoords, {
-    elevation,
-    treeHeight
-}) {
-    const tileName = `${tileCoords.x}|${tileCoords.y}|${tileCoords.z}`
-    let tileData = config.getDataByTile ? config.getDataByTile(tileName) : undefined
-    if (!tileData) tileData = {}
-    if (!tileData.elevation) {
-        tileData.elevation = raster2dem(getImageData(await getImage(
-            config.elevationUrl
-                .replace('{z}', tileCoords.z)
-                .replace('{x}', tileCoords.x)
-                .replace('{y}', tileCoords.y)
-        ), 256, 256), config.elevationHeightFunction)
-    }
-    if (!tileData.treeHeight) {
-        tileData.treeHeight = raster2dem(getImageData(await wmsGetMapTile(
-            tileCoords
-        ), 256, 256), config.treeHeightFunction)
-    }
-    if (config.saveDataByTile) config.saveDataByTile(tileName, tileData)
+export function getTopodataByTile(tileCoords, sources) {
+    return new Promise((resolve, reject) => {
+        const tileName = `${tileCoords.x}|${tileCoords.y}|${tileCoords.z}`
+        let tileData = config.getDataByTile ? config.getDataByTile(tileName) : undefined
+        if (!tileData) tileData = {}
 
-    return {
-        elevation: elevation ? tileData.elevation : undefined,
-        treeHeight: treeHeight ? tileData.treeHeight : undefined
-    }
+        const check = asyncOperation(sources.length, undefined, () => {
+            if (config.saveDataByTile) config.saveDataByTile(tileName, tileData)
+            resolve(tileData)
+        })
+        for (const source of sources) {
+            if (!tileData[source]) {
+                const srcConfig = config.sources.find(a => a.name == source)
+                if (srcConfig.type == 'wmts') {
+                    getImage(
+                        srcConfig.url
+                            .replace('{z}', tileCoords.z)
+                            .replace('{x}', tileCoords.x)
+                            .replace('{y}', tileCoords.y),
+                        srcConfig.fetchOptions
+                    ).then(img => {
+                        tileData[source] = raster2dem(getImageData(img, 256, 256), srcConfig.valueFunction)
+                        check()
+                    }).catch(reject)
+                }
+                else if (srcConfig.type == 'wms') {
+                    wmsGetMapTile(
+                        tileCoords, 256, 256, srcConfig.fetchOptions
+                    ).then(img => {
+                        tileData[source] = raster2dem(getImageData(img, 256, 256), srcConfig.valueFunction)
+                        check()
+                    }).catch(reject)
+                }
+            } else check()
+        }
+    })
 }
 
 
@@ -85,7 +99,7 @@ function getImageData(img, w, h) {
  * @param {*} rgbArray 
  * @returns 
  */
-function rgbToTreeHeight(rgbArray) {
+export function rgbToTreeHeight(rgbArray) {
     const values = new Map([
         ['255,255,255', 0],
         ['151,71,73', 0],
@@ -131,7 +145,7 @@ export async function wmsLatLngTreeHeight(latlng) {
  * haetaan osoitteesta
  * https://kartta.luke.fi/geoserver/MVMI/ows
  */
-export async function wmsGetMapTile(tileCoords, w = 256, h = 256) {
+export async function wmsGetMapTile(tileCoords, w = 256, h = 256, fetchOptions) {
     const p = tileCoordsToPoint(tileCoords)
     const tileSize = getTileSize(tileCoords.z)
 
@@ -139,7 +153,7 @@ export async function wmsGetMapTile(tileCoords, w = 256, h = 256) {
 
     const treeHeights = await wmsGetMap('https://kartta.luke.fi/geoserver/MVMI/ows?', {
         layers: 'keskipituus_1519', srs: 'EPSG:3857', x0, y0, x1, y1, w, h, format: 'image/png'
-    })
+    }, fetchOptions)
     return treeHeights
 }
 
@@ -237,4 +251,13 @@ export function raster2dem(data, heightFunction) {
     }
 
     return dem;
+}
+
+function asyncOperation(calls, step = () => { }, done = () => { }) {
+    let called = 0
+    return () => {
+        step()
+        if (++called === calls) done()
+        else if (called > calls) throw new Error('Received too many calls.')
+    }
 }

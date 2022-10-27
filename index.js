@@ -1,11 +1,29 @@
 import options from './options.js'
 
 
-import { setConfig, getTopodataByTile, pointToTileCoords, wmsGetMapTile, getImage, xyPositionOnTile } from './topodata.js'
+import { setConfig, getTopodataByTile, pointToTileCoords, wmsGetMapTile, getImage, xyPositionOnTile, rgbToTreeHeight } from './topodata.js'
 
 
 const tileDataStorage = new Map()
 setConfig({
+    sources: [
+        {
+            name: 'elevation',
+            type: 'wmts',
+            url: `https://api.mapbox.com/v4/mapbox.mapbox-terrain-dem-v1/{z}/{x}/{y}.pngraw?access_token=${options.mapboxToken}`,
+            valueFunction: function (R, G, B) {
+                return -10000 + (R * 256 * 256 + G * 256 + B) * 0.1;
+            }
+        },
+        {
+            name: 'treeHeight',
+            type: 'wms',
+            url: 'https://kartta.luke.fi/geoserver/MVMI/ows?',
+            valueFunction: function (r, g, b) {
+                return Math.ceil(rgbToTreeHeight([r, g, b]))
+            }
+        }
+    ],
     saveDataByTile: (name, data) => {
         tileDataStorage.set(name, data)
     },
@@ -45,10 +63,9 @@ async function appendImage(latlng, zoom = 0) {
     const xyOnTile = xyPositionOnTile(latlng, zoom)
     console.log('xyOnTile', xyOnTile)
 
-    const result = await getTopodataByTile(tileCoords, {
-        elevation: true,
-        treeHeight: true
-    })
+    const result = await getTopodataByTile(tileCoords, [
+        'elevation', 'treeHeight'
+    ])
     //console.log(result)
     console.table([
         ['lat, lng', 'zoom', 'elevation', 'tree height'],

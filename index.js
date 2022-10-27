@@ -97,6 +97,9 @@ async function appendImage(latlng, zoom = 0) {
  * © Luonnonvarakeskus, 2019, keskipituus_1519, Monilähteisen valtakunnan metsien inventoinnin (MVMI) kartta-aineisto 2017
  * värit haettu osoitteesta:
  * https://kartta.luke.fi/geoserver/MVMI/ows?service=WMS&version=1.3.0&request=GetLegendGraphic&format=image/png&width=20&height=20&layer=keskipituus_1519
+ * Luken tiedostopalvelusta saa ladattua lehtijaon mukaan laatat, joissa puiden korkeus on 16x16m sluilla desimetrin tarkkuudella.
+ * Arvoja ei olla porrastettu samoin kuin WMS-palvelimella ja aineisto tarjoaa myös korkeampia arvoja käytöön kuin 220dm.
+ * Koska arvot ovat porrastettu ja viimeinen väri kattaa 220dm - ääretön, niin käytetään sitten suomen korkeimman puun pituutta kyseisellä arvolla :D
  * @param {*} rgbArray 
  * @returns 
  */
@@ -113,7 +116,7 @@ function rgbToTreeHeight(rgbArray) {
         ['2,205,0', 16.1],
         ['1,130,0', 18.4],
         ['23,0,220', 21.9],
-        ['40,31,149', 25] // Aineiston värikoodauksen mukaan 220dm - ääretön.
+        ['40,31,149', 47]
     ])
     return values.get(rgbArray.join(','))
 }

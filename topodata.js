@@ -40,7 +40,7 @@ export async function getTopodataByTile(tileCoords, {
     treeHeight
 }) {
     const tileName = `${tileCoords.x}|${tileCoords.y}|${tileCoords.z}`
-    let tileData = config.getDataByTile(tileName)
+    let tileData = config.getDataByTile ? config.getDataByTile(tileName) : undefined
     if (!tileData) tileData = {}
     if (!tileData.elevation) {
         tileData.elevation = raster2dem(getImageData(await getImage(
@@ -55,7 +55,7 @@ export async function getTopodataByTile(tileCoords, {
             tileCoords
         ), 256, 256), config.treeHeightFunction)
     }
-    config.saveDataByTile(tileName, tileData)
+    if (config.saveDataByTile) config.saveDataByTile(tileName, tileData)
 
     return {
         elevation: elevation ? tileData.elevation : undefined,
@@ -185,7 +185,7 @@ export function xyPositionOnTile(latlng, zoom) {
     const tileYStart = p[1] - p[1] % tileSize
     return {
         x: Math.floor((p[0] - tileXStart) / tileSize * 256),
-        y: 256 - Math.floor((p[1] - tileYStart) / tileSize * 256)
+        y: 255 - Math.floor((p[1] - tileYStart) / tileSize * 256)
     }
 }
 export function tileCoordsToPoint({ x, y, z }) {

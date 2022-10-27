@@ -20,7 +20,7 @@ const latlng2 = { lat: 30, lng: 69 }
 
 doStuff()
 async function doStuff() {
-    const z = 12
+    const z = 8
     const dLat = latlng2.lat - latlng1.lat
     const dLng = latlng2.lng - latlng1.lng
     for (let i = 0; i < 5; i++) {
@@ -42,32 +42,35 @@ async function appendImage(latlng, zoom = 0) {
     const tileCoords = pointToTileCoords({ x: point[0], y: point[1], z: zoom })
     //console.log('tileCoords', tileCoords)
 
+    const xyOnTile = xyPositionOnTile(latlng, zoom)
+    console.log('xyOnTile', xyOnTile)
+
     const result = await getTopodataByTile(tileCoords, {
         elevation: true,
         treeHeight: true
     })
-    console.log(result)
+    //console.log(result)
+    console.table([
+        ['lat, lng', 'zoom', 'elevation', 'tree height'],
+        [latlng.lat + ', ' + latlng.lng, zoom, result.elevation[xyOnTile.y * 256 + xyOnTile.x], result.treeHeight[xyOnTile.y * 256 + xyOnTile.x]]
+    ])
 
+
+
+    // Just for visualizing the data
     const treeHeights = await wmsGetMapTile(tileCoords)
-
     const terrainRGB = await getImage(
         `https://api.mapbox.com/v4/mapbox.mapbox-terrain-dem-v1/{z}/{x}/{y}.pngraw?access_token=${options.mapboxToken}`
             .replace('{z}', tileCoords.z)
             .replace('{x}', tileCoords.x)
             .replace('{y}', tileCoords.y)
     )
-
-
     const osm = await getImage(
         'https://tile.openstreetmap.org/{z}/{x}/{y}.png'
             .replace('{z}', tileCoords.z)
             .replace('{x}', tileCoords.x)
             .replace('{y}', tileCoords.y)
     )
-
-    const xyOnTile = xyPositionOnTile(latlng, zoom)
-    //console.log('xyOnTile', xyOnTile)
-
 
     const s = 8
     const putpixel = (ctx, x, y) => ctx.fillRect(x - s / 2, y - s / 2, s, s)

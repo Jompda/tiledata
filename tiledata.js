@@ -36,13 +36,12 @@ export function setConfig({
 }
 
 
-export function getTopodataByTile(tileCoords, sources) {
+export function getTiledata(tileCoords, sources) {
     if (!config.sources) throw new Error('Sources must be specified with setConfig before calling this function!')
     return new Promise((resolve, reject) => {
         const tileName = `${tileCoords.x}|${tileCoords.y}|${tileCoords.z}`
         let tileData = config.getDataByTile ? config.getDataByTile(tileName) : undefined
         if (!tileData) tileData = {}
-        console.log(tileData)
 
         const check = asyncOperation(sources.length, undefined, () => {
             if (config.saveDataByTile) config.saveDataByTile(tileName, tileData)

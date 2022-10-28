@@ -1,7 +1,7 @@
 import options from './options.js'
 
 
-import { setConfig, getTopodataByTile, pointToTileCoords, wmsGetMapTile, getImage, xyPositionOnTile } from './topodata.js'
+import { setConfig, getTiledata, pointToTileCoords, wmsGetMapTile, getImage, xyPositionOnTile } from '../tiledata.js'
 
 
 const tileDataStorage = new Map()
@@ -87,35 +87,22 @@ async function appendRandomImages() {
             lat: latlng1.lat + Math.random() * dLat,
             lng: latlng1.lng + Math.random() * dLng
         }
-        //const treeHeight = await wmsLatLngTreeHeight(latlng)
-        /*console.table([
-            ['latlng', 'zoom', 'elevation', 'tree height'],
-            [(Math.round(latlng.lat * 100) / 100) + ', ' + (Math.round(latlng.lng * 100) / 100), z, undefined, treeHeight]
-        ])*/
         await appendImage(latlng, z)
     }
 }
 async function appendImage(latlng, zoom = 0) {
     const point = proj4('EPSG:4326', 'EPSG:3857').forward([latlng.lat, latlng.lng])
-
     const tileCoords = pointToTileCoords({ x: point[0], y: point[1], z: zoom })
-    //console.log('tileCoords', tileCoords)
-
     const xyOnTile = xyPositionOnTile(latlng, zoom)
-    console.log('xyOnTile', xyOnTile)
 
-    const result = await getTopodataByTile(tileCoords, [
+    const startTime = Date.now()
+    const result = await getTiledata(tileCoords, [
         'elevation', 'treeHeight'
     ])
-    //console.log(result)
-    console.table([
-        ['lat, lng', 'zoom', 'elevation', 'tree height'],
-        [latlng.lat + ', ' + latlng.lng, zoom, result.elevation[xyOnTile.y * 256 + xyOnTile.x], result.treeHeight[xyOnTile.y * 256 + xyOnTile.x]]
-    ])
+    console.log('Tiledata retrieve and calculation time:', Date.now() - startTime, 'ms')
 
 
-
-    // Just for visualizing the data
+    // Just for visualizing the retrieved data
     const treeHeights = await wmsGetMapTile(tileCoords)
     const terrainRGB = await getImage(
         `https://api.mapbox.com/v4/mapbox.mapbox-terrain-dem-v1/{z}/{x}/{y}.pngraw?access_token=${options.mapboxToken}`
@@ -130,32 +117,26 @@ async function appendImage(latlng, zoom = 0) {
             .replace('{y}', tileCoords.y)
     )
 
+    console.table([
+        ['lat, lng', 'zoom', 'elevation', 'tree height'],
+        [latlng.lat + ', ' + latlng.lng, zoom, result.elevation[xyOnTile.y * 256 + xyOnTile.x], result.treeHeight[xyOnTile.y * 256 + xyOnTile.x]]
+    ])
+
     const s = 8
     const putpixel = (ctx, x, y) => ctx.fillRect(x - s / 2, y - s / 2, s, s)
+    function createCanvas(img, p) {
+        const canvas = document.createElement('canvas')
+        canvas.width = canvas.height = 256
+        const ctx = canvas.getContext('2d')
+        ctx.drawImage(img, 0, 0)
+        ctx.fillStyle = 'red'
+        putpixel(ctx, p.x, p.y)
+        return canvas
+    }
 
-    let canvas = document.createElement('canvas')
-    canvas.width = canvas.height = 256
-    let ctx = canvas.getContext('2d')
-    ctx.drawImage(osm, 0, 0)
-    ctx.fillStyle = 'red'
-    putpixel(ctx, xyOnTile.x, xyOnTile.y)
-    document.getElementById('r1').appendChild(canvas)
-
-    canvas = document.createElement('canvas')
-    canvas.width = canvas.height = 256
-    ctx = canvas.getContext('2d')
-    ctx.drawImage(terrainRGB, 0, 0)
-    ctx.fillStyle = 'red'
-    putpixel(ctx, xyOnTile.x, xyOnTile.y)
-    document.getElementById('r2').appendChild(canvas)
-
-    canvas = document.createElement('canvas')
-    canvas.width = canvas.height = 256
-    ctx = canvas.getContext('2d')
-    ctx.drawImage(treeHeights, 0, 0)
-    ctx.fillStyle = 'red'
-    putpixel(ctx, xyOnTile.x, xyOnTile.y)
-    document.getElementById('r3').appendChild(canvas)
+    document.getElementById('r1').appendChild(createCanvas(osm, xyOnTile))
+    document.getElementById('r2').appendChild(createCanvas(terrainRGB, xyOnTile))
+    document.getElementById('r3').appendChild(createCanvas(treeHeights, xyOnTile))
 }
 
 

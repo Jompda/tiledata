@@ -1,5 +1,5 @@
 # tiledata
-Provides an easy way of fetching map data as tiles from different sources.
+Provides an easy way of fetching map data as tiles from different sources. Relies on the browser environment.
 
 ## example
 Requires a `options.js` file in the folder. Template:

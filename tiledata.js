@@ -2,11 +2,10 @@ proj4.defs("EPSG:4326", "+proj=longlat +datum=WGS84 +no_defs +type=crs")
 proj4.defs("EPSG:3857", "+proj=merc +a=6378137 +b=6378137 +lat_ts=0 +lon_0=0 +x_0=0 +y_0=0 +k=1 +units=m +nadgrids=@null +wktext +no_defs +type=crs")
 
 
-const config = {
-    sources: undefined,
-    saveDataByTile: undefined,
-    getDataByTile: undefined
-}
+let sources
+let res = 256
+let saveDataByTile
+let getDataByTile
 
 
 /**
@@ -19,38 +18,36 @@ const config = {
  *   layers?: string,
  *   fetchOptions: {},
  *   valueFunction: (r: number, g: number, b: number) => number
- * }]
+ * }],
+ * tileSize?: number,
  * saveDataByTile: (name: string, data: any),
  * getDataByTile: (name: string)
- * }} param0 
+ * }} options 
  * @returns 
  */
-export function setConfig({
-    sources,
-    saveDataByTile,
-    getDataByTile
-}) {
-    if (!sources) return
-    config.sources = sources
-    if (saveDataByTile) config.saveDataByTile = saveDataByTile
-    if (getDataByTile) config.getDataByTile = getDataByTile
+export function setConfig(options) {
+    if (!options.sources) return
+    sources = options.sources
+    if (options.tileSize) res = options.tileSize
+    if (options.saveDataByTile) saveDataByTile = options.saveDataByTile
+    if (options.getDataByTile) getDataByTile = options.getDataByTile
 }
 
 
-export function getTiledata(tileCoords, sources) {
-    if (!config.sources) throw new Error('Sources must be specified with setConfig before calling this function!')
+export function getTiledata(tileCoords, sourceNames) {
+    if (!sources) throw new Error('Sources must be specified with setConfig before calling this function!')
     return new Promise((resolve, reject) => {
         const tileName = `${tileCoords.x}|${tileCoords.y}|${tileCoords.z}`
-        let tileData = config.getDataByTile ? config.getDataByTile(tileName) : undefined
+        let tileData = getDataByTile ? getDataByTile(tileName) : undefined
         if (!tileData) tileData = {}
 
         const check = asyncOperation(sources.length, undefined, () => {
-            if (config.saveDataByTile) config.saveDataByTile(tileName, tileData)
+            if (saveDataByTile) saveDataByTile(tileName, tileData)
             resolve(tileData)
         })
-        for (const source of sources) {
+        for (const source of sourceNames) {
             if (!tileData[source]) {
-                const srcConfig = config.sources.find(a => a.name == source)
+                const srcConfig = sources.find(a => a.name == source)
                 if (srcConfig.type == 'wmts') {
                     getImage(
                         srcConfig.url
@@ -59,15 +56,15 @@ export function getTiledata(tileCoords, sources) {
                             .replace('{y}', tileCoords.y),
                         srcConfig.fetchOptions
                     ).then(img => {
-                        tileData[source] = raster2dem(getImageData(img, 256, 256), srcConfig.valueFunction)
+                        tileData[source] = raster2dem(getImageData(img, res, res), srcConfig.valueFunction)
                         check()
                     }).catch(reject)
                 }
                 else if (srcConfig.type == 'wms') {
                     wmsGetMapTile(
-                        srcConfig.url, srcConfig.layers, tileCoords, 256, 256, srcConfig.fetchOptions
+                        srcConfig.url, srcConfig.layers, tileCoords, res, res, srcConfig.fetchOptions
                     ).then(img => {
-                        tileData[source] = raster2dem(getImageData(img, 256, 256), srcConfig.valueFunction)
+                        tileData[source] = raster2dem(getImageData(img, res, res), srcConfig.valueFunction)
                         check()
                     }).catch(reject)
                 }
@@ -87,7 +84,7 @@ function getImageData(img, w, h) {
 }
 
 
-export async function wmsGetMapTile(url, layers, tileCoords, w = 256, h = 256, fetchOptions) {
+export async function wmsGetMapTile(url, layers, tileCoords, w = res, h = res, fetchOptions) {
     const p = tileCoordsToPoint(tileCoords)
     const tileSize = getTileSize(tileCoords.z)
 
@@ -139,8 +136,8 @@ export function xyPositionOnTile(latlng, zoom) {
     const tileXStart = p[0] - p[0] % tileSize
     const tileYStart = p[1] - p[1] % tileSize
     return {
-        x: Math.floor((p[0] - tileXStart) / tileSize * 256),
-        y: 255 - Math.floor((p[1] - tileYStart) / tileSize * 256)
+        x: Math.floor((p[0] - tileXStart) / tileSize * res),
+        y: 255 - Math.floor((p[1] - tileYStart) / tileSize * res)
     }
 }
 export function tileCoordsToPoint({ x, y, z }) {
@@ -165,14 +162,12 @@ export function getTileSize(z) {
 
 /**
  * A function which transforms imageData to a digital elevation model.
+ * Modified to support different resolutions.
  * Source: https://github.com/slutske22/leaflet-topography
  * Retrieved: 22.10.2022
- * @param {*} data 
- * @param {*} heightFunction 
- * @returns {Int16Array}
  */
 export function raster2dem(data, heightFunction) {
-    const dem = new Int16Array(256 * 256);
+    const dem = new Int16Array(res * res);
 
     var x, y, i, j;
 
@@ -182,9 +177,9 @@ export function raster2dem(data, heightFunction) {
             return -10000 + (R * 256 * 256 + G * 256 + B) * 0.1;
         };
 
-    for (x = 0; x < 256; x++) {
-        for (y = 0; y < 256; y++) {
-            i = x + y * 256;
+    for (x = 0; x < res; x++) {
+        for (y = 0; y < res; y++) {
+            i = x + y * res;
             j = i * 4;
             dem[i] = height(data[j], data[j + 1], data[j + 2]);
         }

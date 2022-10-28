@@ -81,7 +81,7 @@ async function appendRandomImages() {
 }
 async function appendImage(latlng, zoom = 0) {
     const point = proj4('EPSG:4326', 'EPSG:3857').forward([latlng.lat, latlng.lng])
-    const tileCoords = pointToTileCoords({ x: point[0], y: point[1], z: zoom })
+    const tileCoords = pointToTileCoords({ x: point[0], y: point[1] }, zoom)
     const xyOnTile = xyPositionOnTile(latlng, zoom)
 
     const startTime = Date.now()

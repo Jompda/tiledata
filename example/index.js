@@ -1,6 +1,4 @@
 import options from './options.js'
-
-
 import { setConfig, getTiledata, pointToTileCoords, wmsGetMapTile, getImage, xyPositionOnTile } from '../tiledata.js'
 
 
@@ -50,24 +48,10 @@ setConfig({
 })
 
 
-//const projectedLatLng = proj4('EPSG:3857', 'EPSG:4326').forward([2808285, 9608542])
-//const latlng = { lat: projectedLatLng[0], lng: projectedLatLng[1] }
-const latlng1 = { lat: 22, lng: 60 }
-const latlng2 = { lat: 30, lng: 69 }
-
-doStuff()
-async function doStuff() {
-    await appendRandomImages()
-    /*setInterval(() => {
-        document.getElementById('r1').innerHTML = ''
-        document.getElementById('r2').innerHTML = ''
-        document.getElementById('r3').innerHTML = ''
-        appendRandomImages()
-    }, 6000)*/
-}
-
-
+appendRandomImages()
 async function appendRandomImages() {
+    const latlng1 = { lat: 22, lng: 60 }
+    const latlng2 = { lat: 30, lng: 69 }
     const z = 8
     const dLat = latlng2.lat - latlng1.lat
     const dLng = latlng2.lng - latlng1.lng
@@ -126,40 +110,4 @@ async function appendImage(latlng, zoom = 0) {
     document.getElementById('r1').appendChild(createCanvas(osm, xyOnTile))
     document.getElementById('r2').appendChild(createCanvas(terrainRGB, xyOnTile))
     document.getElementById('r3').appendChild(createCanvas(treeHeights, xyOnTile))
-}
-
-
-
-
-/**
- * Bresenham's line algorithm modified for javascript
- * Source: https://en.wikipedia.org/wiki/Bresenham's_line_algorithm
- * Retrieved: 22.10.2022
- */
-function getLinePlot(x0, y0, x1, y1) {
-    const gridPoints = []
-
-    const dx = Math.abs(x1 - x0)
-    const sx = x0 < x1 ? 1 : -1
-    const dy = -Math.abs(y1 - y0)
-    const sy = y0 < y1 ? 1 : -1
-    let error = dx + dy
-
-    while (true) {
-        gridPoints.push({ x: x0, y: y0 })
-        if (x0 == x1 && y0 == y1) break
-        const e2 = 2 * error
-        if (e2 >= dy) {
-            if (x0 == x1) break
-            error = error + dy
-            x0 = x0 + sx
-        }
-        if (e2 <= dx) {
-            if (y0 == y1) break
-            error = error + dx
-            y0 = y0 + sy
-        }
-    }
-
-    return gridPoints
 }

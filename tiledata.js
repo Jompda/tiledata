@@ -150,7 +150,7 @@ export function tileCoordsToPoint({ x, y, z }) {
         y: 20037508.34 - y * tileSize
     }
 }
-export function pointToTileCoords({ x, y, z }) {
+export function pointToTileCoords({ x, y }, z) {
     const tileSize = getTileSize(z)
     return {
         x: Math.floor((x + 20037508.34) / tileSize),

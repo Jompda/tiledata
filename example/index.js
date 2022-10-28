@@ -144,10 +144,9 @@ async function appendImage(latlng, zoom = 0) {
 
 
 /**
- * Title: Bresenham's line algorithm
- * Author: Jack Elton Bresenham
- * Date: 22.10.2022
+ * Bresenham's line algorithm modified for javascript
  * Source: https://en.wikipedia.org/wiki/Bresenham's_line_algorithm
+ * Retrieved: 22.10.2022
  */
 function getLinePlot(x0, y0, x1, y1) {
     const gridPoints = []

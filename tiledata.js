@@ -16,6 +16,7 @@ const config = {
  *   name: string,
  *   type: 'wmts' | 'wms',
  *   url: string,
+ *   layers: string | undefined,
  *   fetchOptions: {},
  *   valueFunction: (r: number, g: number, b: number) => number
  * }]
@@ -86,12 +87,6 @@ function getImageData(img, w, h) {
 }
 
 
-/**
- * Hyödynnetävä aineisto:
- * © Luonnonvarakeskus, 2019, keskipituus_1519, Monilähteisen valtakunnan metsien inventoinnin (MVMI) kartta-aineisto 2017
- * haetaan osoitteesta
- * https://kartta.luke.fi/geoserver/MVMI/ows
- */
 export async function wmsGetMapTile(url, layers, tileCoords, w = 256, h = 256, fetchOptions) {
     const p = tileCoordsToPoint(tileCoords)
     const tileSize = getTileSize(tileCoords.z)
@@ -105,7 +100,6 @@ export async function wmsGetMapTile(url, layers, tileCoords, w = 256, h = 256, f
 }
 
 
-//https://kartta.luke.fi/geoserver/MVMI/ows?service=WMS&request=GetMap&version=1.3.0&layers=keskipituus_1519&srs=EPSG:3067&bbox=308000,6666000,312096,6670096&width=256&height=256&format=image/png
 export function wmsGetMap(url, {
     version = '1.3.0', layers, srs = 'EPSG:3857', x0, y0, x1, y1, w, h, format = 'image/png'
 }, fetchOptions) {
@@ -170,10 +164,9 @@ export function getTileSize(z) {
 
 
 /**
- * Title: leaflet-topography
- * Author: Seth "slutske22" Lutske
- * Date: 22.10.2022
+ * A function which transforms imageData to a digital elevation model.
  * Source: https://github.com/slutske22/leaflet-topography
+ * Retrieved: 22.10.2022
  * @param {*} data 
  * @param {*} heightFunction 
  * @returns {Int16Array}

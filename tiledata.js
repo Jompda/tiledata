@@ -9,7 +9,7 @@ let getDataByTile
 
 
 /**
- * Source url with type wmts shall contain {x}, {y}, and {z} to be replaced with the corresponding coordinates.
+ * Source url with type wmts shall contain substrings "{x}", "{y}", and "{z}" to be replaced with the corresponding coordinates.
  * @param {{
  * sources: [{
  *   name: string,

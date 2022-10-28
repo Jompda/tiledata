@@ -64,7 +64,7 @@ export function getTiledata(tileCoords, sources) {
                 }
                 else if (srcConfig.type == 'wms') {
                     wmsGetMapTile(
-                        tileCoords, 256, 256, srcConfig.fetchOptions
+                        srcConfig.url, srcConfig.layers, tileCoords, 256, 256, srcConfig.fetchOptions
                     ).then(img => {
                         tileData[source] = raster2dem(getImageData(img, 256, 256), srcConfig.valueFunction)
                         check()
@@ -92,14 +92,14 @@ function getImageData(img, w, h) {
  * haetaan osoitteesta
  * https://kartta.luke.fi/geoserver/MVMI/ows
  */
-export async function wmsGetMapTile(tileCoords, w = 256, h = 256, fetchOptions) {
+export async function wmsGetMapTile(url, layers, tileCoords, w = 256, h = 256, fetchOptions) {
     const p = tileCoordsToPoint(tileCoords)
     const tileSize = getTileSize(tileCoords.z)
 
     const x0 = p.x, y0 = p.y - tileSize, x1 = x0 + tileSize, y1 = y0 + tileSize
 
-    const treeHeights = await wmsGetMap('https://kartta.luke.fi/geoserver/MVMI/ows?', {
-        layers: 'keskipituus_1519', srs: 'EPSG:3857', x0, y0, x1, y1, w, h, format: 'image/png'
+    const treeHeights = await wmsGetMap(url, {
+        layers, srs: 'EPSG:3857', x0, y0, x1, y1, w, h, format: 'image/png'
     }, fetchOptions)
     return treeHeights
 }

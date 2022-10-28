@@ -19,6 +19,7 @@ setConfig({
             name: 'treeHeight',
             type: 'wms',
             url: 'https://kartta.luke.fi/geoserver/MVMI/ows?',
+            layers: 'keskipituus_1519',
             valueFunction: function (r, g, b) {
                 return Math.ceil(rgbToTreeHeight([r, g, b]))
             }
@@ -103,7 +104,7 @@ async function appendImage(latlng, zoom = 0) {
 
 
     // Just for visualizing the retrieved data
-    const treeHeights = await wmsGetMapTile(tileCoords)
+    const treeHeights = await wmsGetMapTile('https://kartta.luke.fi/geoserver/MVMI/ows?', 'keskipituus_1519', tileCoords)
     const terrainRGB = await getImage(
         `https://api.mapbox.com/v4/mapbox.mapbox-terrain-dem-v1/{z}/{x}/{y}.pngraw?access_token=${options.mapboxToken}`
             .replace('{z}', tileCoords.z)

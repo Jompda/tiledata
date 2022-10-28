@@ -16,7 +16,7 @@ const config = {
  *   name: string,
  *   type: 'wmts' | 'wms',
  *   url: string,
- *   layers: string | undefined,
+ *   layers?: string,
  *   fetchOptions: {},
  *   valueFunction: (r: number, g: number, b: number) => number
  * }]

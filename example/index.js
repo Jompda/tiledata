@@ -108,7 +108,7 @@ async function appendImage(latlng, zoom = 0) {
 
     console.table([
         ['lat, lng', 'zoom', 'elevation', 'tree height'],
-        [latlng.lat + ', ' + latlng.lng, zoom, result.elevation[xyOnTile.y * 256 + xyOnTile.x], result.treeHeight[xyOnTile.y * 256 + xyOnTile.x]]
+        [latlng.lat + ', ' + latlng.lng, zoom, result.elevation[xyOnTile.y * 256 + xyOnTile.x] + 'm', result.treeHeight[xyOnTile.y * 256 + xyOnTile.x] + 'm']
     ])
 
     const s = 8

@@ -23,17 +23,20 @@ let getDataByTile
  * saveDataByTile: (name: string, data: any),
  * getDataByTile: (name: string)
  * }} options 
- * @returns 
  */
 export function setConfig(options) {
-    if (!options.sources) return
     sources = options.sources
     if (options.tileSize) res = options.tileSize
-    if (options.saveDataByTile) saveDataByTile = options.saveDataByTile
-    if (options.getDataByTile) getDataByTile = options.getDataByTile
+    saveDataByTile = options.saveDataByTile
+    getDataByTile = options.getDataByTile
 }
 
 
+/**
+ * @param {{x: number, y: number, z: number}} tileCoords 
+ * @param {string[]} sourceNames Pointing to previously defined sources by their name.
+ * @returns {Promise} Resolves to an object containing Int16Arrays of the retrieved data by their names.
+ */
 export function getTiledata(tileCoords, sourceNames) {
     if (!sources) throw new Error('Sources must be specified with setConfig before calling this function!')
     return new Promise((resolve, reject) => {

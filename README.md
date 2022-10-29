@@ -9,7 +9,7 @@ First you have to initialize the module by calling `setConfig` which takes the f
     sources: [{
         name: string,
         type: 'wmts' | 'wms',
-        url: string,
+        url: string, // With type 'wmts' the url shall contain substrings "{x}", "{y}", and "{z}" to be replaced with the corresponding coordinates.
         layers?: string, // Needed only when using wms.
         fetchOptions?: {}, // Passed onto the browser's fetch function.
         valueFunction: (r: number, g: number, b: number) => number

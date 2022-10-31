@@ -133,9 +133,29 @@ export function getImage(url, fetchOptions) {
 }
 
 
-export function xyPositionOnTile(latlng, zoom) {
+export function latlngToTileCoords({ lat, lng }, z) {
+    // Retrieved from https://wiki.openstreetmap.org/wiki/Slippy_map_tilenames#ECMAScript_(JavaScript/ActionScript,_etc.)
+    function lon2tile(lon, zoom) { return (Math.floor((lon + 180) / 360 * Math.pow(2, zoom))); }
+    function lat2tile(lat, zoom) { return (Math.floor((1 - Math.log(Math.tan(lat * Math.PI / 180) + 1 / Math.cos(lat * Math.PI / 180)) / Math.PI) / 2 * Math.pow(2, zoom))); }
+    return {
+        x: lon2tile(lng, z),
+        y: lat2tile(lat, z),
+        z
+    }
+}
+
+export function latlngToXYOnTile(latlng, zoom) {
     const tileSize = getTileSize(zoom)
-    const p = proj4('EPSG:4326', 'EPSG:3857').forward([latlng.lat, latlng.lng])
+    const p = proj4('EPSG:4326', 'EPSG:3857').forward([latlng.lng, latlng.lat])
+    const tileXStart = p[0] - p[0] % tileSize
+    const tileYStart = p[1] - p[1] % tileSize
+    return {
+        x: Math.floor((p[0] - tileXStart) / tileSize * res),
+        y: 255 - Math.floor((p[1] - tileYStart) / tileSize * res)
+    }
+}
+export function pointToXYOnTile(p, zoom) {
+    const tileSize = getTileSize(zoom)
     const tileXStart = p[0] - p[0] % tileSize
     const tileYStart = p[1] - p[1] % tileSize
     return {

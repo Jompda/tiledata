@@ -1,5 +1,17 @@
 import options from './options.js'
-import { setConfig, getTiledata, pointToTileCoords, wmsGetMapTile, getImage, xyPositionOnTile } from '../tiledata.js'
+import { setConfig, getTiledata, pointToTileCoords, wmsGetMapTile, getImage, latlngToXYOnTile } from '../tiledata.js'
+
+
+const map = L.map('map').setView([62, 26], 6)
+const osm = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19,
+    attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+}).addTo(map)
+const elevationlayer = new L.GridLayer.elevationlayer({ opacity: 0.7 }).addTo(map)
+const treelayer = new L.GridLayer.treelayer({ opacity: 0.2 })
+const infolayer = new L.GridLayer.infolayer({ opacity: 1 }).addTo(map)
+
+const lc = L.control.layers({ osm }, { elevationlayer, treelayer, infolayer }).addTo(map)
 
 
 const tileDataStorage = new Map()
@@ -46,68 +58,3 @@ setConfig({
     },
     getDataByTile: (name) => tileDataStorage.get(name)
 })
-
-
-appendRandomImages()
-async function appendRandomImages() {
-    const latlng1 = { lat: 22, lng: 60 }
-    const latlng2 = { lat: 30, lng: 69 }
-    const z = 8
-    const dLat = latlng2.lat - latlng1.lat
-    const dLng = latlng2.lng - latlng1.lng
-    for (let i = 0; i < 5; i++) {
-        const latlng = {
-            lat: latlng1.lat + Math.random() * dLat,
-            lng: latlng1.lng + Math.random() * dLng
-        }
-        await appendImage(latlng, z)
-    }
-}
-async function appendImage(latlng, zoom = 0) {
-    const point = proj4('EPSG:4326', 'EPSG:3857').forward([latlng.lat, latlng.lng])
-    const tileCoords = pointToTileCoords({ x: point[0], y: point[1] }, zoom)
-    const xyOnTile = xyPositionOnTile(latlng, zoom)
-
-    const startTime = Date.now()
-    const result = await getTiledata(tileCoords, [
-        'elevation', 'treeHeight'
-    ])
-    console.log('Tiledata retrieve and calculation time:', Date.now() - startTime, 'ms')
-
-
-    // Just for visualizing the retrieved data
-    const treeHeights = await wmsGetMapTile('https://kartta.luke.fi/geoserver/MVMI/ows?', 'keskipituus_1519', tileCoords)
-    const terrainRGB = await getImage(
-        `https://api.mapbox.com/v4/mapbox.mapbox-terrain-dem-v1/{z}/{x}/{y}.pngraw?access_token=${options.mapboxToken}`
-            .replace('{z}', tileCoords.z)
-            .replace('{x}', tileCoords.x)
-            .replace('{y}', tileCoords.y)
-    )
-    const osm = await getImage(
-        'https://tile.openstreetmap.org/{z}/{x}/{y}.png'
-            .replace('{z}', tileCoords.z)
-            .replace('{x}', tileCoords.x)
-            .replace('{y}', tileCoords.y)
-    )
-
-    console.table([
-        ['lat, lng', 'zoom', 'elevation', 'tree height'],
-        [latlng.lat + ', ' + latlng.lng, zoom, result.elevation[xyOnTile.y * 256 + xyOnTile.x] + 'm', result.treeHeight[xyOnTile.y * 256 + xyOnTile.x] + 'm']
-    ])
-
-    const s = 8
-    const putpixel = (ctx, x, y) => ctx.fillRect(x - s / 2, y - s / 2, s, s)
-    function createCanvas(img, p) {
-        const canvas = document.createElement('canvas')
-        canvas.width = canvas.height = 256
-        const ctx = canvas.getContext('2d')
-        ctx.drawImage(img, 0, 0)
-        ctx.fillStyle = 'red'
-        putpixel(ctx, p.x, p.y)
-        return canvas
-    }
-
-    document.getElementById('r1').appendChild(createCanvas(osm, xyOnTile))
-    document.getElementById('r2').appendChild(createCanvas(terrainRGB, xyOnTile))
-    document.getElementById('r3').appendChild(createCanvas(treeHeights, xyOnTile))
-}

@@ -145,19 +145,13 @@ export function latlngToTileCoords({ lat, lng }, z) {
 }
 
 export function latlngToXYOnTile(latlng, zoom) {
-    const tileSize = getTileSize(zoom)
     const p = proj4('EPSG:4326', 'EPSG:3857').forward([latlng.lng, latlng.lat])
-    const tileXStart = p[0] - p[0] % tileSize
-    const tileYStart = p[1] - p[1] % tileSize
-    return {
-        x: Math.floor((p[0] - tileXStart) / tileSize * res),
-        y: 255 - Math.floor((p[1] - tileYStart) / tileSize * res)
-    }
+    return pointToXYOnTile(p, zoom)
 }
 export function pointToXYOnTile(p, zoom) {
     const tileSize = getTileSize(zoom)
-    const tileXStart = p[0] - p[0] % tileSize
-    const tileYStart = p[1] - p[1] % tileSize
+    const tileXStart = p[0] > 0 ? p[0] - p[0] % tileSize : p[0] - p[0] % tileSize - tileSize
+    const tileYStart = p[1] > 0 ? p[1] - p[1] % tileSize : p[1] - p[1] % tileSize - tileSize
     return {
         x: Math.floor((p[0] - tileXStart) / tileSize * res),
         y: 255 - Math.floor((p[1] - tileYStart) / tileSize * res)

@@ -2,7 +2,7 @@ import options from './options.js'
 import { setConfig, getTiledata, pointToTileCoords, wmsGetMapTile, getImage, latlngToXYOnTile } from '../tiledata.js'
 
 
-const map = L.map('map').setView([62, 26], 6)
+const map = L.map('map').setView([0, 0], 1)
 const osm = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
     maxZoom: 19,
     attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'

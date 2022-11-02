@@ -44,7 +44,7 @@ export function getTiledata(tileCoords, sourceNames) {
         let tileData = getDataByTile ? getDataByTile(tileName) : undefined
         if (!tileData) tileData = {}
 
-        const check = asyncOperation(sources.length, undefined, () => {
+        const check = asyncOperation(sourceNames.length, undefined, () => {
             if (saveDataByTile) saveDataByTile(tileName, tileData)
             resolve(tileData)
         })

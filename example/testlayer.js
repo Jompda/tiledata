@@ -49,10 +49,10 @@ L.GridLayer.infolayer = L.GridLayer.extend({
         const pointToCoords = pointToTileCoords(coordsToPoint, coords.z)
 
         const bounds = this._tileCoordsToBounds(coords)
-        const nw = { lat: bounds._southWest.lat + Math.random(), lng: bounds._southWest.lng + Math.random() }
-        const projP = proj4('EPSG:4326', 'EPSG:3857').forward([nw.lng, nw.lat])
+        const sw = { lat: bounds._southWest.lat + Math.random(), lng: bounds._southWest.lng + Math.random() }
+        const projP = proj4('EPSG:4326', 'EPSG:3857').forward([sw.lng, sw.lat])
 
-        const llxyOnTile = latlngToXYOnTile(nw, coords.z)
+        const llxyOnTile = latlngToXYOnTile(sw, coords.z)
         const pxyOnTile = pointToXYOnTile(projP, coords.z)
 
         const s = 8
@@ -64,9 +64,9 @@ L.GridLayer.infolayer = L.GridLayer.extend({
         ctx.fillText(coordText, 0, 10)
         ctx.fillText('coordsToPoint: x=' + Math.floor(coordsToPoint.x) + ' y=' + Math.floor(coordsToPoint.y), 0, 20)
         ctx.fillText('pointToCoords: x=' + pointToCoords.x + ' y=' + pointToCoords.y + ' z=' + pointToCoords.z, 0, 30)
-        ctx.fillText(`nw + Math.random:`, 0, 40)
-        ctx.fillText(`  lat=${nw.lat}`, 0, 50)
-        ctx.fillText(`  lng=${nw.lng}`, 0, 60)
+        ctx.fillText(`sw + Math.random:`, 0, 40)
+        ctx.fillText(`  lat=${sw.lat}`, 0, 50)
+        ctx.fillText(`  lng=${sw.lng}`, 0, 60)
         ctx.fillText(`projP: x=${Math.round(projP[0])} y=${Math.round(projP[1])}`, 0, 70)
         ctx.fillText(`latlngToXYOnTile: x=${llxyOnTile.x} y=${llxyOnTile.y}`, 0, 80)
         ctx.fillText(`pointToXYOnTile: x=${pxyOnTile.x} y=${pxyOnTile.y}`, 0, 90)

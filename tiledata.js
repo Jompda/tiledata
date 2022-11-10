@@ -8,22 +8,6 @@ let saveDataByTile
 let getDataByTile
 
 
-/**
- * Source url with type wmts shall contain substrings "{x}", "{y}", and "{z}" to be replaced with the corresponding coordinates.
- * @param {{
- * sources: [{
- *   name: string,
- *   type: 'wmts' | 'wms',
- *   url: string,
- *   layers?: string,
- *   fetchOptions: {},
- *   valueFunction: (r: number, g: number, b: number) => number
- * }],
- * tileSize?: number,
- * saveDataByTile: (name: string, data: any),
- * getDataByTile: (name: string)
- * }} options 
- */
 export function setConfig(options) {
     sources = options.sources
     if (options.tileSize) res = options.tileSize
@@ -32,11 +16,6 @@ export function setConfig(options) {
 }
 
 
-/**
- * @param {{x: number, y: number, z: number}} tileCoords 
- * @param {string[]} sourceNames Pointing to previously defined sources by their name.
- * @returns {Promise} Resolves to an object containing Int16Arrays of the retrieved data by their names.
- */
 export function getTiledata(tileCoords, sourceNames) {
     if (!sources) throw new Error('Sources must be specified with setConfig before calling this function!')
     return new Promise((resolve, reject) => {
@@ -93,10 +72,9 @@ export async function wmsGetMapTile(url, layers, tileCoords, w = res, h = res, f
 
     const x0 = p.x, y0 = p.y - tileSize, x1 = x0 + tileSize, y1 = y0 + tileSize
 
-    const treeHeights = await wmsGetMap(url, {
+    return await wmsGetMap(url, {
         layers, srs: 'EPSG:3857', x0, y0, x1, y1, w, h, format: 'image/png'
     }, fetchOptions)
-    return treeHeights
 }
 
 

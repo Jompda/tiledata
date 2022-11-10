@@ -1,5 +1,5 @@
 import options from './options.js'
-import { setConfig, getTiledata, pointToTileCoords, wmsGetMapTile, getImage, latlngToXYOnTile } from '../tiledata.js'
+import { setConfig } from '../tiledata.js'
 
 
 const map = L.map('map').setView([0, 0], 1)

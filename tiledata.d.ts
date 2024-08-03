@@ -34,9 +34,9 @@ declare module 'tiledata' {
     export function latlngToTileCoords(latlng: LatLng, z: number): TileCoords
     export function latlngToTilePixelCoords(tileCoords, latlng): Point
     export function latlngToXYOnTile(latlng: LatLng, zoom: number): Point
-    export function pointToXYOnTIle(p: Point, zoom: number): Point
+    export function pointToXYOnTile(p: Point, zoom: number): Point
     export function tileCoordsToPoint(tileCoords: TileCoords): Point
-    export function pointToTIleCoords(p: Point, zoom: number): TileCoords
+    export function pointToTileCoords(p: Point, zoom: number): TileCoords
     export function getTileSize(zoom: number): number
     export function raster2dem(data: Uint8ClampedArray, heightFunction: (r: number, g: number, b: number) => number): Int16Array
 }

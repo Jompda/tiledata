@@ -32,6 +32,7 @@ declare module 'tiledata' {
     export function wmsGetMapTile(url: string, layers: string, tileCoords: TileCoords, w: number, h: number, fetchOptions: RequestInit): Promise<Image>
     export function getImage(url: string, fetchOptions: RequestInit): Promise<Image>
     export function latlngToTileCoords(latlng: LatLng, z: number): TileCoords
+    export function latlngToTilePixelCoords(tileCoords, latlng): Point
     export function latlngToXYOnTile(latlng: LatLng, zoom: number): Point
     export function pointToXYOnTIle(p: Point, zoom: number): Point
     export function tileCoordsToPoint(tileCoords: TileCoords): Point

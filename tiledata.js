@@ -2,6 +2,7 @@ proj4.defs("EPSG:4326", "+proj=longlat +datum=WGS84 +no_defs +type=crs")
 proj4.defs("EPSG:3857", "+proj=merc +a=6378137 +b=6378137 +lat_ts=0 +lon_0=0 +x_0=0 +y_0=0 +k=1 +units=m +nadgrids=@null +wktext +no_defs +type=crs")
 
 
+const w = 20037508.34
 let sources
 let res = 256
 let saveDataByTile
@@ -111,21 +112,30 @@ export function getImage(url, fetchOptions) {
 }
 
 
-export function latlngToTileCoords({ lat, lng }, z) {
-    // Retrieved from https://wiki.openstreetmap.org/wiki/Slippy_map_tilenames#ECMAScript_(JavaScript/ActionScript,_etc.)
-    function lon2tile(lon, zoom) { return (Math.floor((lon + 180) / 360 * Math.pow(2, zoom))); }
-    function lat2tile(lat, zoom) { return (Math.floor((1 - Math.log(Math.tan(lat * Math.PI / 180) + 1 / Math.cos(lat * Math.PI / 180)) / Math.PI) / 2 * Math.pow(2, zoom))); }
+export function latlngToTileCoords(latlng, scale) {
+    const point = L.CRS.EPSG3857.latLngToPoint(latlng, scale)
     return {
-        x: lon2tile(lng, z),
-        y: lat2tile(lat, z),
-        z
+        x: Math.floor(point.x / 256),
+        y: Math.floor(point.y / 256),
+        z: scale
     }
 }
+export function latlngToTilePixelCoords(tileCoords, latlng) {
+    const point = L.CRS.EPSG3857.latLngToPoint(latlng, tileCoords.z)
+    const xOffset = point.x / 256 - tileCoords.x
+    const yOffset = point.y / 256 - tileCoords.y
+    const resUnit = 1 / 256
+    const x = Math.floor(xOffset / resUnit)
+    const y = Math.floor(yOffset / resUnit)
+    return { x, y }
+}
 
+// TODO: Check if actually works
 export function latlngToXYOnTile(latlng, zoom) {
     const p = proj4('EPSG:4326', 'EPSG:3857').forward([latlng.lng, latlng.lat])
     return pointToXYOnTile(p, zoom)
 }
+// TODO: Check if actually works
 export function pointToXYOnTile(p, zoom) {
     const tileSize = getTileSize(zoom)
     const tileXStart = p[0] > 0 ? p[0] - p[0] % tileSize : p[0] - p[0] % tileSize - tileSize
@@ -138,20 +148,20 @@ export function pointToXYOnTile(p, zoom) {
 export function tileCoordsToPoint({ x, y, z }) {
     const tileSize = getTileSize(z)
     return {
-        x: x * tileSize - 20037508.34,
-        y: 20037508.34 - y * tileSize
+        x: x * tileSize - w,
+        y: w - y * tileSize
     }
 }
 export function pointToTileCoords({ x, y }, z) {
     const tileSize = getTileSize(z)
     return {
-        x: Math.floor((x + 20037508.34) / tileSize),
-        y: Math.floor((20037508.34 - y) / tileSize),
+        x: Math.floor((x + w) / tileSize),
+        y: Math.floor((w - y) / tileSize),
         z
     }
 }
 export function getTileSize(z) {
-    return 2 * 20037508.34 / (2 ** z)
+    return 2 * w / (2 ** z)
 }
 
 

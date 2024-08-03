@@ -1,6 +1,6 @@
 {
     "name": "tiledata",
-    "version": "1.0.5",
+    "version": "1.0.6",
     "description": "Provides an easy way of fetching map data as tiles from different sources. Relies on the browser environment and depends on proj4js for the moment. See the example index.html for more details.",
     "main": "tiledata.js",
     "repository": {
